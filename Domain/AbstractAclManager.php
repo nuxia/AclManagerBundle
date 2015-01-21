@@ -196,19 +196,7 @@ abstract class AbstractAclManager implements AclManagerInterface
         $size = count($aceCollection) - 1;
         reset($aceCollection);
 
-        //If transaction already
-        if($this->connection->isTransactionActive()){
-            $this->doUpdatePermission($size, $replaceExisting, $aceCollection, $context, $acl, $field, $type);
-        }else{
-            try{
-                $this->connection->beginTransaction();
-                $this->doUpdatePermission($size, $replaceExisting, $aceCollection, $context, $acl, $field, $type);
-                $this->connection->commit();
-            } catch(\Exception $e){
-                $this->connection->rollBack();
-                throw $e;
-            }
-        }
+        $this->doUpdatePermission($size, $replaceExisting, $aceCollection, $context, $acl, $field, $type);
     }
 
     /**
