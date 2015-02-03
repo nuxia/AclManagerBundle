@@ -53,10 +53,6 @@ ACL_SQL;
     {
         $clause = array();
 
-        if(null === $extraQueries[0]){
-            return false;
-        }
-
         foreach($extraQueries as $query){
             $clause[] = $tableAlias.'.id IN(('.$query.'))';
         }
