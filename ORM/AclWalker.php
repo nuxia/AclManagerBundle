@@ -28,7 +28,7 @@ class AclWalker extends SqlWalker
                 if ($extraQueries) {
                     $extraCriteriaSql = $this->parseExtraQueries($extraQueries, $tableAlias);
                     $aclSql = <<<ACL_SQL
-INNER JOIN ({$query}) {$aclAlias} ON ({$tableAlias}.id = {$aclAlias}.id OR ({{$extraCriteriaSql}))
+INNER JOIN ({$query}) {$aclAlias} ON ({$tableAlias}.id = {$aclAlias}.id OR ({$extraCriteriaSql}))
 ACL_SQL;
                 } else {
                     $aclSql = <<<ACL_SQL
@@ -49,7 +49,7 @@ ACL_SQL;
      *
      * @return array
      */
-    protected function parseExtraQueries(Array $extraQueries, $tableAlias)
+    protected function parseExtraQueries($extraQueries, $tableAlias)
     {
         $clause = array();
 

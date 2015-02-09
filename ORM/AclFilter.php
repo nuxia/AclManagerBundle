@@ -80,6 +80,8 @@ class AclFilter
                 $sqlQueries[] = $this->getSqlCriteria($criteria);
             }
         }
+
+        return $sqlQueries;
     }
 
     /**
