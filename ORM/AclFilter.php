@@ -66,11 +66,7 @@ class AclFilter
         if (!$extraCriteria) {
             return $sqlQueries;
         }
-
-        if (!is_array($extraCriteria)) {
-            $sqlQueries[] = $this->getSqlCriteria($extraCriteria);
-        }
-
+        
         if ($extraCriteria && !is_array($extraCriteria)) {
             $extraCriteria = array($extraCriteria);
         }
