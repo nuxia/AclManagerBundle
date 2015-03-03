@@ -2,61 +2,56 @@
 
 namespace Problematic\AclManagerBundle\ORM;
 
+use Doctrine\ORM\Query;
 use Doctrine\ORM\Query\SqlWalker;
 
 class AclWalker extends SqlWalker
 {
     /**
-     * @param $fromClause
+     * @param \Doctrine\ORM\Query\AST\WhereClause $whereClause
      *
-     * @return string 
+     * @return string
      */
-    public function walkFromClause($fromClause)
+    public function walkWhereClause($whereClause)
     {
-        $sql = parent::walkFromClause($fromClause);
-        $aclMetadata = $this->getQuery()->getHint('acl.metadata');
-        $extraQueries = $this->getQuery()->getHint(AclFilter::HINT_ACL_EXTRA_CRITERIA);
+        $sql = parent::walkWhereClause($whereClause);
+        $query = $this->getQuery();
 
-        if ($aclMetadata) {
-            foreach ($aclMetadata as $key => $metadata) {
-                $alias = $metadata['alias'];
-                $query = $metadata['query'];
-                $table = $metadata['table'];
-                $tableAlias = $this->getSQLTableAlias($table, $alias);
-                $aclAlias = 'ta' . $key . '_';
+        $identities = $query->getHint(AclFilter::ACL_IDENTIFIERS);
+        $mask = $query->getHint(AclFilter::ACL_MASK);
+        $extraCriteria = $query->getHint(AclFilter::ACL_EXTRA_CRITERIA);
 
-                if ($extraQueries) {
-                    $extraCriteriaSql = $this->parseExtraQueries($extraQueries, $tableAlias);
-                    $aclSql = <<<ACL_SQL
-INNER JOIN ({$query}) {$aclAlias} ON ({$tableAlias}.id = {$aclAlias}.id OR ({$extraCriteriaSql}))
-ACL_SQL;
-                } else {
-                    $aclSql = <<<ACL_SQL
-INNER JOIN ({$query}) {$aclAlias} ON ({$tableAlias}.id = {$aclAlias}.id)
-ACL_SQL;
-                }
+        if(empty($sql)){
+            $sql .= ' WHERE ( s.identifier IN ('.implode(', ', $identities).') AND ';
+            $sql .= ' e.mask >= '.$mask.') ';
+        }
 
-                $sql .= ' ' . $aclSql;
-            }
+        if($extraCriteria instanceof \Closure){
+            $criteria = new ExtraAclCriteria($query, $this);
+            $extraCriteria($criteria);
+
+            $sql .= ' '.$criteria->getExpression().' ';
         }
 
         return $sql;
     }
 
     /**
-     * @param array $extraQueries
-     * @param string $tableAlias
+     * @param $fromClause
      *
-     * @return array
+     * @return string
      */
-    protected function parseExtraQueries($extraQueries, $tableAlias)
+    public function walkFromClause($fromClause)
     {
-        $clause = array();
+        $sql = parent::walkFromClause($fromClause);
+        $query = $this->getQuery();
+        $alias = $query->getHint(AclFilter::ACL_IDENTIFIER_ALIAS);
 
-        foreach($extraQueries as $query){
-            $clause[] = $tableAlias.'.id IN(('.$query.'))';
-        }
+        $sql .= ' INNER JOIN acl_object_identities as o ON o.object_identifier = '.$this->getSQLTableAlias('client', $alias).'.id ';
+        $sql .= ' INNER JOIN acl_classes c ON c.id = o.class_id ';
+        $sql .= ' LEFT JOIN acl_entries e ON (e.class_id = o.class_id AND (e.object_identity_id = o.id OR e.object_identity_id IS NULL )) ';
+        $sql .= ' LEFT JOIN acl_security_identities s ON (s.id = e.security_identity_id) ';
 
-        return implode(' OR ', $clause);
+        return $sql;
     }
 }
