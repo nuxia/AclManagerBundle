@@ -5,7 +5,7 @@ Add this bundle to your `composer.json` file:
 ```json
 {
     "require": {
-        "gos/acl-manager-bundle": "stable version"
+        "nuxia/acl-manager-bundle": "*"
     }
 }
 ```
